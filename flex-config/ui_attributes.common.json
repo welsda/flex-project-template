@@ -1,7 +1,7 @@
 {
   "sdkOptions": {
     "voice": {
-      "allowIncomingWhileBusy": true
+      "allowIncomingWhileBusy": false
     }
   },
   "custom_data": {
@@ -154,7 +154,7 @@
         "serverless_domain": "<YOUR_SCHEDULE_MANAGER_DOMAIN>"
       },
       "multi_call": {
-        "enabled": false
+        "enabled": true
       },
       "hang_up_by": {
         "enabled": true

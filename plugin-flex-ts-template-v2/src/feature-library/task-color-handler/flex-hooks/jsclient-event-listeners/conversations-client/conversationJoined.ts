@@ -60,7 +60,8 @@ export const jsClientHook = async function setTaskSidOnChannelAttributes(
         if (success && webhookSid) {
           newWebhookSid = webhookSid;
           console.log(message);
-        } else if (status && status === 409) {
+        } else if (status && status === 409 && webhookSid) {
+          newWebhookSid = webhookSid;
           console.warn(message);
         } else {
           console.error(message);
@@ -85,7 +86,7 @@ export const jsClientHook = async function setTaskSidOnChannelAttributes(
 
       await conversation.updateAttributes(newAttributes);
       console.log(
-        `The task SID ${taskSid} and the webhook SID ${existingWebhookSid} have been succesfully configured in the attributes of the conversation ${conversationSid}!`,
+        `The task SID ${taskSid} and the webhook SID ${existingWebhookSid || newWebhookSid} have been succesfully configured in the attributes of the conversation ${conversationSid}!`,
       );
     } catch (error) {
       console.error(

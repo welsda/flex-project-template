@@ -38,6 +38,7 @@ exports.handler = prepareFlexFunction(requiredParameters, async (context, event,
         message: `There is a webhook and an inactivation timer already configured in the conversation ${conversationSid}. No need to configure a new one`,
         status: 409,
         succes: false,
+        webhookSid: existingWebhook.sid
       });
       return callback(null, response);
     } else {
@@ -50,7 +51,7 @@ exports.handler = prepareFlexFunction(requiredParameters, async (context, event,
         }),
       );
 
-      const { data: timerData } = await twilioExecute(context, (client) =>
+      await twilioExecute(context, (client) =>
         client.conversations.v1.conversations(conversationSid).update({
           'timers.inactive': 'PT1M',
         }),
@@ -58,7 +59,6 @@ exports.handler = prepareFlexFunction(requiredParameters, async (context, event,
 
       response.setStatusCode(200);
       response.setBody({
-        dateInactive: timerData.timers.date_inactive,
         message: `A webhook and an inactivation timer have been succesfully configured in the conversation ${conversationSid}`,
         status: 200,
         success: true,

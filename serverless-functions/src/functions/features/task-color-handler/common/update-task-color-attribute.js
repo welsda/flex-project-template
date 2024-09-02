@@ -102,6 +102,12 @@ exports.handler = prepareActivatedByWebhookFunction(
             response.setStatusCode(status);
             response.setBody(taskResults);
           } else {
+            await twilioExecute(context, (client) =>
+              client.conversations.v1.conversations(ConversationSid).update({
+                state: 'active',
+              }),
+            );
+            
             response.setStatusCode(204);
             response.setBody({
               message: 'Nothing to do since no agent has accepted the pending task yet',

@@ -4,7 +4,6 @@ import { EncodedParams } from '../../../types/serverless';
 import ApiService from '../../../utils/serverless/ApiService';
 
 export interface SetWebhookandTimerResponse {
-  dateInactive?: string
   message: string;
   status?: number;
   success?: boolean;
@@ -17,11 +16,13 @@ class TaskColorHandlerService extends ApiService {
       return await this.#setWebhookAndTimer(conversationSid);
     } catch (error) {
       let errorMessage;
-      let errorStatus: number = 400;
+      let errorStatus;
+      let webhookSid;
 
       if (typeof error === 'object' && error !== null) {
         errorMessage = (error as { message?: string }).message || JSON.stringify(error);
         errorStatus = (error as { status?: number }).status || 400;
+        webhookSid = (error as { webhookSid?: string }).webhookSid || '';
       } else {
         errorMessage = String(error);
       }
@@ -29,7 +30,8 @@ class TaskColorHandlerService extends ApiService {
       return {
         message: `Webhook and timer configuration in the conversation ${conversationSid} has failed due to the following error: ${errorMessage}`,
         success: false,
-        status: errorStatus
+        status: errorStatus,
+        webhookSid
       };
     }
   }

@@ -28,6 +28,10 @@ export const addHook = (flex: typeof Flex, manager: Flex.Manager, feature: strin
         manager.conversationsClient.on(ConversationEvent.conversationJoined, (conversation) => {
           hook.jsClientHook(flex, manager, conversation);
         });
+      } else if (event === ConversationEvent.conversationLeft) {
+        manager.conversationsClient.on(ConversationEvent.conversationLeft, (conversation) => {
+          hook.jsClientHook(flex, manager, conversation);
+        });
       }
       break;
     case FlexJsClient.voiceClient:

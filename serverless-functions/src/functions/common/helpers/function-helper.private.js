@@ -1,4 +1,4 @@
-const { isObject, isString } = require('lodash');
+const { isObject, isString, isArray } = require('lodash');
 const TokenValidator = require('twilio-flex-token-validator').functionValidator;
 
 const retryHandler = require(Runtime.getFunctions()['common/helpers/retry-handler'].path).retryHandler;
@@ -53,13 +53,24 @@ exports.validateParameters = (callingFunctionPath, parameterObject, requiredKeys
         errorMessage += `(${callingFunctionPath}) Missing ${data}`;
       }
     } else if (isObject(data) && data.key && data.purpose) {
-      // Support "useful" requiredKeysArray of [{ key: 'propertyName', purpose: 'I need it' }]
-      if (
-        parameterObject[data.key] === undefined ||
-        parameterObject[data.key] === null ||
-        parameterObject[data.key].length < 1
-      ) {
-        errorMessage += `(${callingFunctionPath}) Missing ${data.key}: ${data.purpose}`;
+      // Event streams case
+      if (parameterObject[0] && parameterObject[0]['specversion']) {
+        if (
+          parameterObject[0][data.key] === undefined ||
+          parameterObject[0][data.key] === null ||
+          parameterObject[0][data.key].length < 1
+        ) {
+          errorMessage += `(${callingFunctionPath}) Missing ${subData.key}: ${subData.purpose}`;
+        }
+      } else {
+        // Support "useful" requiredKeysArray of [{ key: 'propertyName', purpose: 'I need it' }]
+        if (
+          parameterObject[data.key] === undefined ||
+          parameterObject[data.key] === null ||
+          parameterObject[data.key].length < 1
+        ) {
+          errorMessage += `(${callingFunctionPath}) Missing ${data.key}: ${data.purpose}`;
+        }
       }
     } else {
       // No supported way for us to check parameter
@@ -91,6 +102,30 @@ exports.prepareFlexFunction = (requiredParameters, handlerFn) => {
  * @param handlerFn             the Twilio Runtime handler function to execute
  */
 exports.prepareStudioFunction = (requiredParameters, handlerFn) => {
+  return (context, event, callback) => prepareFunction(context, event, callback, requiredParameters, handlerFn);
+};
+
+/**
+ * Prepares the function for execution. Validates required parameters, then prepares
+ * the response object with the appropriate headers, as well as an error handling function.
+ * Note: This is only intended for protected functions, and does not validate a token.
+ *
+ * @param requiredParameters    array of parameters required and their description
+ * @param handlerFn             the Twilio Runtime handler function to execute
+ */
+exports.prepareEventStreamsFunction = (requiredParameters, handlerFn) => {
+  return (context, event, callback) => prepareFunction(context, event, callback, requiredParameters, handlerFn);
+};
+
+/**
+ * Prepares the function for execution. Validates required parameters, then prepares
+ * the response object with the appropriate headers, as well as an error handling function.
+ * Note: This is only intended for protected functions, and does not validate a token.
+ *
+ * @param requiredParameters    array of parameters required and their description
+ * @param handlerFn             the Twilio Runtime handler function to execute
+ */
+exports.prepareActivatedByWebhookFunction = (requiredParameters, handlerFn) => {
   return (context, event, callback) => prepareFunction(context, event, callback, requiredParameters, handlerFn);
 };
 

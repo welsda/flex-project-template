@@ -15,25 +15,10 @@ export interface ListPhoneNumbersResponse {
 }
 
 export interface ValidatePhoneNumberResponse {
+  lookupResponse: any;
   success: boolean;
-  lookupResponse: LookupResponse;
-}
-
-export interface LookupResponse {
-  callingCountryCode: string;
-  countryCode: string;
-  phoneNumber: string;
-  nationalFormat: string;
   valid: boolean;
-  validationErrors: Array<string>;
-  callerName: string;
-  simSwap: string;
-  callForwarding: string;
-  liveActivity: string;
-  lineTypeIntelligence: string;
-  identityMatch: string;
-  smsPumpingRisk: string;
-  url: string;
+  invalidReason?: string;
 }
 
 class PhoneNumberService extends ApiService {

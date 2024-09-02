@@ -21,9 +21,8 @@ exports.handler = prepareActivatedByWebhookFunction(
           const { data } = await twilioExecute(context, (client) =>
             client.conversations.v1.conversations(ConversationSid).fetch(),
           );
-
           const conversationAttributes = JSON.parse(data.attributes);
-          const { existingTaskSids } = conversationAttributes;
+          const { defaultColor, existingTaskSids, initialColor, urgencyColor, warningColor } = conversationAttributes;
 
           if (existingTaskSids && Array.isArray(existingTaskSids)) {
             const taskResults = [];
@@ -33,26 +32,25 @@ exports.handler = prepareActivatedByWebhookFunction(
                 const { data } = await twilioExecute(context, (client) =>
                   client.taskrouter.v1.workspaces(context.TWILIO_FLEX_WORKSPACE_SID).tasks(taskSid).fetch(),
                 );
-
                 const taskAttributes = JSON.parse(data.attributes);
                 const { color } = taskAttributes;
                 let newColor;
 
-                if (color === '#E1E3EA') {
+                if (color === (defaultColor || '#E1E3EA')) {
                   taskResults.push({
                     taskSid,
                     message: 'Nothing to do since the customer has not replied the agent back yet',
                     success: true,
                   });
-                } else if (color === 'green') {
+                } else if (color === (initialColor || 'green')) {
                   await twilioExecute(context, (client) =>
                     client.conversations.v1.conversations(ConversationSid).update({
                       state: 'active',
                     }),
                   );
-                  newColor = 'yellow';
-                } else if (color === 'yellow') {
-                  newColor = 'red';
+                  newColor = warningColor || 'yellow';
+                } else if (color === (warningColor || 'yellow')) {
+                  newColor = urgencyColor || 'red';
                 } else {
                   taskResults.push({
                     taskSid,
@@ -107,7 +105,7 @@ exports.handler = prepareActivatedByWebhookFunction(
                 state: 'active',
               }),
             );
-            
+
             response.setStatusCode(204);
             response.setBody({
               message: 'Nothing to do since no agent has accepted the pending task yet',
@@ -125,15 +123,13 @@ exports.handler = prepareActivatedByWebhookFunction(
         const { data } = await twilioExecute(context, (client) =>
           client.conversations.v1.conversations(ConversationSid).fetch(),
         );
-
         const conversationAttributes = JSON.parse(data.attributes);
-        const { existingTaskSids } = conversationAttributes;
+        const { defaultColor, existingTaskSids, initialColor } = conversationAttributes;
 
         if (existingTaskSids && Array.isArray(existingTaskSids)) {
           const { data } = await twilioExecute(context, (client) =>
             client.taskrouter.v1.workspaces(context.TWILIO_FLEX_WORKSPACE_SID).workers.list(),
           );
-
           const { Author } = event;
           const workerFriendlyNames = data.map((worker) => worker.friendlyName);
           const taskResults = [];
@@ -143,14 +139,13 @@ exports.handler = prepareActivatedByWebhookFunction(
               const { data } = await twilioExecute(context, (client) =>
                 client.taskrouter.v1.workspaces(context.TWILIO_FLEX_WORKSPACE_SID).tasks(taskSid).fetch(),
               );
-
               const taskAttributes = JSON.parse(data.attributes);
               const { color } = taskAttributes;
               let newColor;
 
               if (Author.startsWith('CH') || workerFriendlyNames.includes(Author)) {
-                if (color !== '#E1E3EA') {
-                  newColor = '#E1E3EA';
+                if (color !== (defaultColor || '#E1E3EA')) {
+                  newColor = defaultColor || '#E1E3EA';
                 } else {
                   taskResults.push({
                     taskSid,
@@ -159,8 +154,8 @@ exports.handler = prepareActivatedByWebhookFunction(
                   });
                 }
               } else {
-                if (color === '#E1E3EA') {
-                  newColor = 'green';
+                if (color === (defaultColor || '#E1E3EA')) {
+                  newColor = initialColor || 'green';
                 } else {
                   taskResults.push({
                     taskSid,

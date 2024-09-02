@@ -11,9 +11,9 @@ export interface SetWebhookandTimerResponse {
 }
 
 class TaskColorHandlerService extends ApiService {
-  async setWebhookAndTimerOnConversation(conversationSid: string): Promise<SetWebhookandTimerResponse> {
+  async setWebhookAndTimerOnConversation(conversationSid: string, inactivationTime: number): Promise<SetWebhookandTimerResponse> {
     try {
-      return await this.#setWebhookAndTimer(conversationSid);
+      return await this.#setWebhookAndTimer(conversationSid, inactivationTime);
     } catch (error) {
       let errorMessage;
       let errorStatus;
@@ -36,12 +36,13 @@ class TaskColorHandlerService extends ApiService {
     }
   }
 
-  #setWebhookAndTimer = async (conversationSid: string): Promise<SetWebhookandTimerResponse> => {
+  #setWebhookAndTimer = async (conversationSid: string, inactivationTime: number): Promise<SetWebhookandTimerResponse> => {
     const manager = Flex.Manager.getInstance();
 
     const encodedParams: EncodedParams = {
       Token: encodeURIComponent(manager.user.token),
       conversationSid: encodeURIComponent(conversationSid),
+      inactivationTime: encodeURIComponent(inactivationTime),
     };
 
     return this.fetchJsonWithReject<SetWebhookandTimerResponse>(

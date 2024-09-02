@@ -1,10 +1,13 @@
 const { prepareFlexFunction, twilioExecute } = require(Runtime.getFunctions()['common/helpers/function-helper'].path);
 
-const requiredParameters = [{ key: 'conversationSid', purpose: 'conversation identifier' }];
+const requiredParameters = [
+  { key: 'conversationSid', purpose: 'conversation identifier' },
+  { key: 'inactivationTime', purpose: 'time to make conversation inactive if no messages are added to it' },
+];
 
 exports.handler = prepareFlexFunction(requiredParameters, async (context, event, callback, response, handleError) => {
   try {
-    const { conversationSid } = event;
+    const { conversationSid, inactivationTime } = event;
 
     let domainName = context.DOMAIN_NAME;
 
@@ -38,7 +41,7 @@ exports.handler = prepareFlexFunction(requiredParameters, async (context, event,
         message: `There is a webhook and an inactivation timer already configured in the conversation ${conversationSid}. No need to configure a new one`,
         status: 409,
         succes: false,
-        webhookSid: existingWebhook.sid
+        webhookSid: existingWebhook.sid,
       });
       return callback(null, response);
     } else {
@@ -53,7 +56,7 @@ exports.handler = prepareFlexFunction(requiredParameters, async (context, event,
 
       await twilioExecute(context, (client) =>
         client.conversations.v1.conversations(conversationSid).update({
-          'timers.inactive': 'PT1M',
+          'timers.inactive': `PT${inactivationTime}M`,
         }),
       );
 

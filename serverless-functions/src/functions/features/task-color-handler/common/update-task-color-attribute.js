@@ -42,7 +42,7 @@ exports.handler = prepareActivatedByWebhookFunction(
                     message: 'Nothing to do since the customer has not replied the agent back yet',
                     success: true,
                   });
-                } else if (color === (initialColor || 'green')) {
+                } else if (color === (initialColor || '#34eb55')) {
                   await twilioExecute(context, (client) =>
                     client.conversations.v1.conversations(ConversationSid).update({
                       state: 'active',

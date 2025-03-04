@@ -44,6 +44,12 @@ exports.handler = prepareActivatedByWebhookFunction(
                 let newColor;
 
                 if (color === (defaultColor || '#E1E3EA')) {
+                  await twilioExecute(context, (client) =>
+                    client.conversations.v1.conversations(ConversationSid).update({
+                      'timers.inactive': `PT0M`,
+                    }),
+                  );
+
                   taskResults.push({
                     taskSid,
                     message: 'Nothing to do since the customer has not replied the agent back yet',
@@ -64,8 +70,20 @@ exports.handler = prepareActivatedByWebhookFunction(
 
                   newColor = warningColor || 'yellow';
                 } else if (color === (warningColor || 'yellow')) {
+                  await twilioExecute(context, (client) =>
+                    client.conversations.v1.conversations(ConversationSid).update({
+                      'timers.inactive': `PT0M`,
+                    }),
+                  );
+
                   newColor = urgencyColor || 'red';
                 } else {
+                  await twilioExecute(context, (client) =>
+                    client.conversations.v1.conversations(ConversationSid).update({
+                      'timers.inactive': `PT0M`,
+                    }),
+                  );
+
                   taskResults.push({
                     taskSid,
                     message: 'Nothing to do since the agent has not replied the customer back yet',
@@ -159,6 +177,12 @@ exports.handler = prepareActivatedByWebhookFunction(
               let newColor;
 
               if (Author.startsWith('CH') || workerFriendlyNames.includes(Author)) {
+                await twilioExecute(context, (client) =>
+                  client.conversations.v1.conversations(ConversationSid).update({
+                    'timers.inactive': `PT0M`,
+                  }),
+                );
+                
                 if (color !== (defaultColor || '#E1E3EA')) {
                   newColor = defaultColor || '#E1E3EA';
                 } else {

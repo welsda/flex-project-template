@@ -22,7 +22,14 @@ exports.handler = prepareActivatedByWebhookFunction(
             client.conversations.v1.conversations(ConversationSid).fetch(),
           );
           const conversationAttributes = JSON.parse(data.attributes);
-          const { defaultColor, existingTaskSids, initialColor, urgencyColor, warningColor } = conversationAttributes;
+          const {
+            defaultColor,
+            existingTaskSids,
+            initialColor,
+            timeToChangeToUrgencyColor,
+            urgencyColor,
+            warningColor,
+          } = conversationAttributes;
 
           if (existingTaskSids && Array.isArray(existingTaskSids)) {
             const taskResults = [];
@@ -48,6 +55,13 @@ exports.handler = prepareActivatedByWebhookFunction(
                       state: 'active',
                     }),
                   );
+
+                  await twilioExecute(context, (client) =>
+                    client.conversations.v1.conversations(ConversationSid).update({
+                      'timers.inactive': `PT${timeToChangeToUrgencyColor}M`,
+                    }),
+                  );
+
                   newColor = warningColor || 'yellow';
                 } else if (color === (warningColor || 'yellow')) {
                   newColor = urgencyColor || 'red';
@@ -124,7 +138,8 @@ exports.handler = prepareActivatedByWebhookFunction(
           client.conversations.v1.conversations(ConversationSid).fetch(),
         );
         const conversationAttributes = JSON.parse(data.attributes);
-        const { defaultColor, existingTaskSids, initialColor } = conversationAttributes;
+        const { defaultColor, existingTaskSids, initialColor, timeToChangeToWarningColor } =
+          conversationAttributes;
 
         if (existingTaskSids && Array.isArray(existingTaskSids)) {
           const { data } = await twilioExecute(context, (client) =>
@@ -155,6 +170,12 @@ exports.handler = prepareActivatedByWebhookFunction(
                 }
               } else {
                 if (color === (defaultColor || '#E1E3EA')) {
+                  await twilioExecute(context, (client) =>
+                    client.conversations.v1.conversations(ConversationSid).update({
+                      'timers.inactive': `PT${timeToChangeToWarningColor}M`,
+                    }),
+                  );
+
                   newColor = initialColor || 'green';
                 } else {
                   taskResults.push({

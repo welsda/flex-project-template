@@ -11,9 +11,19 @@ export interface SetWebhookandTimerResponse {
 }
 
 class TaskColorHandlerService extends ApiService {
-  async setWebhookAndTimerOnConversation(conversationSid: string, inactivationTime: number): Promise<SetWebhookandTimerResponse> {
+  async setWebhookAndTimerOnConversation(
+    conversationSid: string,
+    setColor: string,
+    timeToChangeToUrgencyColor: number,
+    timeToChangeToWarningColor: number,
+  ): Promise<SetWebhookandTimerResponse> {
     try {
-      return await this.#setWebhookAndTimer(conversationSid, inactivationTime);
+      return await this.#setWebhookAndTimer(
+        conversationSid,
+        setColor,
+        timeToChangeToUrgencyColor,
+        timeToChangeToWarningColor,
+      );
     } catch (error) {
       let errorMessage;
       let errorStatus;
@@ -31,18 +41,25 @@ class TaskColorHandlerService extends ApiService {
         message: `Webhook and timer configuration in the conversation ${conversationSid} has failed due to the following error: ${errorMessage}`,
         success: false,
         status: errorStatus,
-        webhookSid
+        webhookSid,
       };
     }
   }
 
-  #setWebhookAndTimer = async (conversationSid: string, inactivationTime: number): Promise<SetWebhookandTimerResponse> => {
+  #setWebhookAndTimer = async (
+    conversationSid: string,
+    setColor: string,
+    timeToChangeToUrgencyColor: number,
+    timeToChangeToWarningColor: number,
+  ): Promise<SetWebhookandTimerResponse> => {
     const manager = Flex.Manager.getInstance();
 
     const encodedParams: EncodedParams = {
       Token: encodeURIComponent(manager.user.token),
       conversationSid: encodeURIComponent(conversationSid),
-      inactivationTime: encodeURIComponent(inactivationTime),
+      setColor: encodeURIComponent(setColor),
+      timeToChangeToUrgencyColor: encodeURIComponent(timeToChangeToUrgencyColor),
+      timeToChangeToWarningColor: encodeURIComponent(timeToChangeToWarningColor),
     };
 
     return this.fetchJsonWithReject<SetWebhookandTimerResponse>(

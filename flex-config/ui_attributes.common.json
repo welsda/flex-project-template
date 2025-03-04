@@ -426,7 +426,8 @@
         "customer_waiting_for_response_initial_color": "#34eb55",
         "customer_waiting_for_response_warning_color": "yellow",
         "customer_waiting_for_response_urgency_color": "red",
-        "change_color_after_how_many_minutes": 4
+        "change_to_warning_color_after_how_many_minutes": 4,
+        "change_to_urgency_color_after_how_many_minutes": 4
       }
     }
   }

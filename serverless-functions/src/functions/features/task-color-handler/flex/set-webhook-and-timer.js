@@ -2,12 +2,14 @@ const { prepareFlexFunction, twilioExecute } = require(Runtime.getFunctions()['c
 
 const requiredParameters = [
   { key: 'conversationSid', purpose: 'conversation identifier' },
-  { key: 'inactivationTime', purpose: 'time to make conversation inactive if no messages are added to it' },
+  { key: 'setColor', purpose: 'color set at the moment the task was accepted by a worker' },
+  { key: 'timeToChangeToUrgencyColor', purpose: 'time to change the color of the conversation from the warning color to urgency color' },
+  { key: 'timeToChangeToWarningColor', purpose: 'time to change the color of the conversation from the initial color to warning color' },
 ];
 
 exports.handler = prepareFlexFunction(requiredParameters, async (context, event, callback, response, handleError) => {
   try {
-    const { conversationSid, inactivationTime } = event;
+    const { conversationSid, setColor, timeToChangeToUrgencyColor, timeToChangeToWarningColor } = event;
 
     let domainName = context.DOMAIN_NAME;
 
@@ -54,15 +56,21 @@ exports.handler = prepareFlexFunction(requiredParameters, async (context, event,
         }),
       );
 
-      await twilioExecute(context, (client) =>
-        client.conversations.v1.conversations(conversationSid).update({
-          'timers.inactive': `PT${inactivationTime}M`,
-        }),
-      );
+      if (setColor !== 'urgencyColor') {
+        await twilioExecute(context, (client) =>
+          client.conversations.v1.conversations(conversationSid).update({
+            'timers.inactive': `PT${
+              setColor === 'initialColor' ? timeToChangeToWarningColor : timeToChangeToUrgencyColor
+            }M`,
+          }),
+        );
+      }
 
       response.setStatusCode(200);
       response.setBody({
-        message: `A webhook and an inactivation timer have been succesfully configured in the conversation ${conversationSid}`,
+        message: `A webhook ${
+          setColor !== 'urgencyColor' ? 'and an inactivation timer have' : 'has'
+        } been succesfully configured in the conversation ${conversationSid}`,
         status: 200,
         success: true,
         webhookSid: webhookData.sid,

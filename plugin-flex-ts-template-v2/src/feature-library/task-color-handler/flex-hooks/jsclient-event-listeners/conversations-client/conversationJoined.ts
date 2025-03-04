@@ -2,7 +2,8 @@ import * as Flex from '@twilio/flex-ui';
 import { Conversation } from '@twilio/conversations';
 import { FlexJsClient, ConversationEvent } from '../../../../../types/feature-loader';
 import {
-  getChangeColorAfterHowManyMinutes,
+  getChangeToUrgencyColorAfterHowManyMinutes,
+  getChangeToWarningColorAfterHowManyMinutes,
   getCustomerWaitingForResponseInitialColor,
   getCustomerWaitingForResponseWarningColor,
   getCustomerWaitingForResponseUrgencyColor,
@@ -30,22 +31,32 @@ export const jsClientHook = async function setTaskSidOnChannelAttributes(
   if (conversationSid && originalDateCreated && taskAttributes && taskChannelUniqueName === 'chat') {
     const defaultColor = getDefaultColor();
     const initialColor = getCustomerWaitingForResponseInitialColor();
-    const timeToCompare = getChangeColorAfterHowManyMinutes();
+    const timeToChangeToUrgencyColor = getChangeToUrgencyColorAfterHowManyMinutes();
+    const timeToChangeToWarningColor = getChangeToWarningColorAfterHowManyMinutes();
     const urgencyColor = getCustomerWaitingForResponseUrgencyColor();
     const warningColor = getCustomerWaitingForResponseWarningColor();
+
+    let setColor: string;
 
     try {
       const formattedOriginalDateCreated = new Date(originalDateCreated);
       const now = new Date();
       const timeDifference = (now.getTime() - formattedOriginalDateCreated.getTime()) / 1000 / 60;
+
       let color: string;
 
-      if (timeDifference > timeToCompare && timeDifference <= (timeToCompare * 2)) {
+      if (
+        timeDifference > timeToChangeToWarningColor &&
+        timeDifference <= timeToChangeToWarningColor + timeToChangeToUrgencyColor
+      ) {
         color = warningColor;
-      } else if (timeDifference > (timeToCompare * 2)) {
+        setColor = "warningColor";
+      } else if (timeDifference > timeToChangeToWarningColor + timeToChangeToUrgencyColor) {
         color = urgencyColor;
+        setColor = "urgencyColor";
       } else {
         color = initialColor;
+        setColor = "initialColor";
       }
 
       await task.setAttributes({ ...taskAttributes, color, taskSid });
@@ -68,7 +79,9 @@ export const jsClientHook = async function setTaskSidOnChannelAttributes(
       try {
         const { message, status, success, webhookSid } = await TaskColorHandlerService.setWebhookAndTimerOnConversation(
           conversationSid,
-          timeToCompare
+          setColor,
+          timeToChangeToUrgencyColor,
+          timeToChangeToWarningColor,
         );
 
         if (success && webhookSid) {
@@ -98,6 +111,8 @@ export const jsClientHook = async function setTaskSidOnChannelAttributes(
         existingTaskSids: Array.isArray(existingTaskSids) ? [...existingTaskSids, taskSid] : [taskSid],
         existingWebhookSid: existingWebhookSid || newWebhookSid,
         initialColor,
+        timeToChangeToUrgencyColor,
+        timeToChangeToWarningColor,
         urgencyColor,
         warningColor,
       };

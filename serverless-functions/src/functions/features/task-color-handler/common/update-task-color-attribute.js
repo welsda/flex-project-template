@@ -34,12 +34,13 @@ exports.handler = prepareActivatedByWebhookFunction(
           if (existingTaskSids && Array.isArray(existingTaskSids)) {
             const taskResults = [];
 
-            for (const taskSid of existingTaskSids) {
+            // process a single task in a separate async function to reduce nesting and avoid variable shadowing
+            async function processTask(taskSid) {
               try {
-                const { data } = await twilioExecute(context, (client) =>
+                const { data: taskData } = await twilioExecute(context, (client) =>
                   client.taskrouter.v1.workspaces(context.TWILIO_FLEX_WORKSPACE_SID).tasks(taskSid).fetch(),
                 );
-                const taskAttributes = JSON.parse(data.attributes);
+                const taskAttributes = JSON.parse(taskData.attributes);
                 const { color } = taskAttributes;
                 let newColor;
 
@@ -55,7 +56,10 @@ exports.handler = prepareActivatedByWebhookFunction(
                     message: 'Nothing to do since the customer has not replied the agent back yet',
                     success: true,
                   });
-                } else if (color === (initialColor || '#34eb55')) {
+                  return;
+                }
+
+                if (color === (initialColor || '#34eb55')) {
                   await twilioExecute(context, (client) =>
                     client.conversations.v1.conversations(ConversationSid).update({
                       state: 'active',
@@ -89,6 +93,7 @@ exports.handler = prepareActivatedByWebhookFunction(
                     message: 'Nothing to do since the agent has not replied the customer back yet',
                     success: true,
                   });
+                  return;
                 }
 
                 if (newColor) {
@@ -121,6 +126,9 @@ exports.handler = prepareActivatedByWebhookFunction(
               }
             }
 
+            // run all task processors in parallel (improves performance and keeps nesting shallow)
+            await Promise.all(existingTaskSids.map((sid) => processTask(sid)));
+
             if (taskResults.every((result) => result.success === false)) {
               status = 400;
             } else if (taskResults.some((result) => result.success === false)) {
@@ -152,27 +160,27 @@ exports.handler = prepareActivatedByWebhookFunction(
           });
         }
       } else if (EventType === 'onMessageAdded') {
-        const { data } = await twilioExecute(context, (client) =>
+        const { data: conversationData } = await twilioExecute(context, (client) =>
           client.conversations.v1.conversations(ConversationSid).fetch(),
         );
-        const conversationAttributes = JSON.parse(data.attributes);
-        const { defaultColor, existingTaskSids, initialColor, timeToChangeToWarningColor } =
-          conversationAttributes;
+        const conversationAttributes = JSON.parse(conversationData.attributes);
+        const { defaultColor, existingTaskSids, initialColor, timeToChangeToWarningColor } = conversationAttributes;
 
         if (existingTaskSids && Array.isArray(existingTaskSids)) {
-          const { data } = await twilioExecute(context, (client) =>
+          const { data: workersData } = await twilioExecute(context, (client) =>
             client.taskrouter.v1.workspaces(context.TWILIO_FLEX_WORKSPACE_SID).workers.list(),
           );
           const { Author } = event;
-          const workerFriendlyNames = data.map((worker) => worker.friendlyName);
+          const workerFriendlyNames = workersData.map((worker) => worker.friendlyName);
           const taskResults = [];
 
-          for (const taskSid of existingTaskSids) {
+          // process a single task in a separate async function to reduce nesting and avoid variable shadowing
+          async function processTask(taskSid) {
             try {
-              const { data } = await twilioExecute(context, (client) =>
+              const { data: taskData } = await twilioExecute(context, (client) =>
                 client.taskrouter.v1.workspaces(context.TWILIO_FLEX_WORKSPACE_SID).tasks(taskSid).fetch(),
               );
-              const taskAttributes = JSON.parse(data.attributes);
+              const taskAttributes = JSON.parse(taskData.attributes);
               const { color } = taskAttributes;
               let newColor;
 
@@ -182,32 +190,34 @@ exports.handler = prepareActivatedByWebhookFunction(
                     'timers.inactive': `PT0M`,
                   }),
                 );
-                
-                if (color !== (defaultColor || '#E1E3EA')) {
-                  newColor = defaultColor || '#E1E3EA';
-                } else {
+
+                if (color === (defaultColor || '#E1E3EA')) {
                   taskResults.push({
                     taskSid,
                     message: 'Nothing to do since the agent has already sent the customer a message before',
                     success: true,
                   });
+                  return;
                 }
-              } else {
-                if (color === (defaultColor || '#E1E3EA')) {
-                  await twilioExecute(context, (client) =>
-                    client.conversations.v1.conversations(ConversationSid).update({
-                      'timers.inactive': `PT${timeToChangeToWarningColor}M`,
-                    }),
-                  );
 
-                  newColor = initialColor || 'green';
-                } else {
+                newColor = defaultColor || '#E1E3EA';
+              } else {
+                if (color !== (defaultColor || '#E1E3EA')) {
                   taskResults.push({
                     taskSid,
                     message: 'Nothing to do since the customer has already sent the agent a message before',
                     success: true,
                   });
+                  return;
                 }
+
+                await twilioExecute(context, (client) =>
+                  client.conversations.v1.conversations(ConversationSid).update({
+                    'timers.inactive': `PT${timeToChangeToWarningColor}M`,
+                  }),
+                );
+
+                newColor = initialColor || 'green';
               }
 
               if (newColor) {
@@ -239,6 +249,9 @@ exports.handler = prepareActivatedByWebhookFunction(
               });
             }
           }
+
+          // run all task processors in parallel (improves performance and keeps nesting shallow)
+          await Promise.all(existingTaskSids.map((sid) => processTask(sid)));
 
           if (taskResults.every((result) => result.success === false)) {
             status = 400;

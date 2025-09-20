@@ -1,5 +1,6 @@
 import * as Flex from '@twilio/flex-ui';
 import { Conversation } from '@twilio/conversations';
+
 import { FlexJsClient, ConversationEvent } from '../../../../../types/feature-loader';
 import {
   getChangeToUrgencyColorAfterHowManyMinutes,
@@ -50,13 +51,13 @@ export const jsClientHook = async function setTaskSidOnChannelAttributes(
         timeDifference <= timeToChangeToWarningColor + timeToChangeToUrgencyColor
       ) {
         color = warningColor;
-        setColor = "warningColor";
+        setColor = 'warningColor';
       } else if (timeDifference > timeToChangeToWarningColor + timeToChangeToUrgencyColor) {
         color = urgencyColor;
-        setColor = "urgencyColor";
+        setColor = 'urgencyColor';
       } else {
         color = initialColor;
-        setColor = "initialColor";
+        setColor = 'initialColor';
       }
 
       await task.setAttributes({ ...taskAttributes, color, taskSid });

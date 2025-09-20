@@ -17,30 +17,27 @@ exports.handler = prepareEventStreamsFunction(
       let result = {
         message: 'Nothing to do since there is no handling for this event',
         status: 200,
-        success: true
+        success: true,
       };
 
-      if (type.includes('com.twilio.taskrouter')) {
-        if (type.includes('task.created')) {
-          const { payload } = data;
-          const { task_date_created, task_attributes, task_sid } = payload;
+      if (type.includes('com.twilio.taskrouter') && type.includes('task.created')) {
+        const { payload } = data;
+        const { task_date_created, task_attributes, task_sid } = payload;
 
-          const parsedTaskAttributes = JSON.parse(task_attributes);
-          
-          const newAttributes = {
-            ...parsedTaskAttributes,
-            originalDateCreated: task_date_created,
-          };
+        const parsedTaskAttributes = JSON.parse(task_attributes);
+        const newAttributes = {
+          ...parsedTaskAttributes,
+          originalDateCreated: task_date_created,
+        };
 
-          result = await TaskRouterOperations.updateTaskAttributes({
-            context,
-            taskSid: task_sid,
-            attributesUpdate: JSON.stringify(newAttributes),
-          });
+        result = await TaskRouterOperations.updateTaskAttributes({
+          context,
+          taskSid: task_sid,
+          attributesUpdate: JSON.stringify(newAttributes),
+        });
 
-          if (!result.message) {
-            result.message = `Original date created attribute has been succesfully configured in the task ${result.data.sid}`
-          }
+        if (!result.message) {
+          result.message = `Original date created attribute has been succesfully configured in the task ${result.data.sid}`;
         }
       }
 

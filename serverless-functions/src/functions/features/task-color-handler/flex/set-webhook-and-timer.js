@@ -3,8 +3,14 @@ const { prepareFlexFunction, twilioExecute } = require(Runtime.getFunctions()['c
 const requiredParameters = [
   { key: 'conversationSid', purpose: 'conversation identifier' },
   { key: 'setColor', purpose: 'color set at the moment the task was accepted by a worker' },
-  { key: 'timeToChangeToUrgencyColor', purpose: 'time to change the color of the conversation from the warning color to urgency color' },
-  { key: 'timeToChangeToWarningColor', purpose: 'time to change the color of the conversation from the initial color to warning color' },
+  {
+    key: 'timeToChangeToUrgencyColor',
+    purpose: 'time to change the color of the conversation from the warning color to urgency color',
+  },
+  {
+    key: 'timeToChangeToWarningColor',
+    purpose: 'time to change the color of the conversation from the initial color to warning color',
+  },
 ];
 
 exports.handler = prepareFlexFunction(requiredParameters, async (context, event, callback, response, handleError) => {
@@ -46,36 +52,36 @@ exports.handler = prepareFlexFunction(requiredParameters, async (context, event,
         webhookSid: existingWebhook.sid,
       });
       return callback(null, response);
-    } else {
-      const { data: webhookData } = await twilioExecute(context, (client) =>
-        client.conversations.v1.conversations(conversationSid).webhooks.create({
-          'configuration.method': 'POST',
-          'configuration.filters': ['onConversationStateUpdated', 'onMessageAdded'],
-          'configuration.url': `https://${domainName}/features/task-color-handler/common/update-task-color-attribute`,
-          target: 'webhook',
+    }
+
+    const { data: webhookData } = await twilioExecute(context, (client) =>
+      client.conversations.v1.conversations(conversationSid).webhooks.create({
+        'configuration.method': 'POST',
+        'configuration.filters': ['onConversationStateUpdated', 'onMessageAdded'],
+        'configuration.url': `https://${domainName}/features/task-color-handler/common/update-task-color-attribute`,
+        target: 'webhook',
+      }),
+    );
+
+    if (setColor !== 'urgencyColor') {
+      await twilioExecute(context, (client) =>
+        client.conversations.v1.conversations(conversationSid).update({
+          'timers.inactive': `PT${
+            setColor === 'initialColor' ? timeToChangeToWarningColor : timeToChangeToUrgencyColor
+          }M`,
         }),
       );
-
-      if (setColor !== 'urgencyColor') {
-        await twilioExecute(context, (client) =>
-          client.conversations.v1.conversations(conversationSid).update({
-            'timers.inactive': `PT${
-              setColor === 'initialColor' ? timeToChangeToWarningColor : timeToChangeToUrgencyColor
-            }M`,
-          }),
-        );
-      }
-
-      response.setStatusCode(200);
-      response.setBody({
-        message: `A webhook ${
-          setColor !== 'urgencyColor' ? 'and an inactivation timer have' : 'has'
-        } been succesfully configured in the conversation ${conversationSid}`,
-        status: 200,
-        success: true,
-        webhookSid: webhookData.sid,
-      });
     }
+
+    response.setStatusCode(200);
+    response.setBody({
+      message: `A webhook ${
+        setColor === 'urgencyColor' ? 'has' : 'and an inactivation timer have'
+      } been succesfully configured in the conversation ${conversationSid}`,
+      status: 200,
+      success: true,
+      webhookSid: webhookData.sid,
+    });
 
     return callback(null, response);
   } catch (error) {
